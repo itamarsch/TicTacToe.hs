@@ -1,7 +1,7 @@
-import Control.Applicative
-import Control.Monad
+import Control.Applicative (liftA2, (<|>))
+import Control.Monad (join)
 import Data.List (intercalate)
-import System.Console.ANSI
+import System.Console.ANSI (Color (..), ColorIntensity (..), ConsoleLayer (..), SGR (..), clearScreen, setCursorPosition, setSGR)
 import Text.Read (readMaybe)
 
 type Board = [BoardRow]
