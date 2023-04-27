@@ -1,7 +1,7 @@
 import Control.Applicative (liftA2, (<|>))
 import Control.Monad (join)
 import Data.Function (on)
-import Data.List (intercalate)
+import Data.List (intercalate, transpose)
 import System.Console.ANSI (Color (..), ColorIntensity (..), ConsoleLayer (..), SGR (..), clearScreen, setCursorPosition, setSGR)
 import Text.Read (readMaybe)
 
@@ -65,10 +65,8 @@ winner rows@[row1, row2, row3] =
             diag2
           ]
   where
-    list3 :: a -> a -> a -> [a]
-    list3 x y z = [x, y, z]
     isWin = join . allEqMaybe
-    columns = zipWith3 list3 row1 row2 row3
+    columns = transpose rows
     diag1 = (\(i, v) -> v !! i) <$> zip [0 ..] rows
     diag2 = (\(i, v) -> v !! (2 - i)) <$> zip [0 ..] rows
 winner _ = error "Board has more than 3 columns"
