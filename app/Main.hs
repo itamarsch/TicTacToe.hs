@@ -1,5 +1,6 @@
 import Control.Applicative (liftA2, (<|>))
 import Control.Monad (join)
+import Data.Function (on)
 import Data.List (intercalate)
 import System.Console.ANSI (Color (..), ColorIntensity (..), ConsoleLayer (..), SGR (..), clearScreen, setCursorPosition, setSGR)
 import Text.Read (readMaybe)
@@ -52,14 +53,17 @@ allEqMaybe _ = Nothing
 
 winner :: Board -> Maybe BoardSpot
 winner rows@[row1, row2, row3] =
-  isWin row1
-    <|> isWin row2
-    <|> isWin row3
-    <|> isWin (head columns)
-    <|> isWin (columns !! 1)
-    <|> isWin (columns !! 2)
-    <|> isWin diag1
-    <|> isWin diag2
+  foldl1 (<|>) $
+    isWin
+      <$> [ row1,
+            row2,
+            row3,
+            head columns,
+            columns !! 1,
+            columns !! 2,
+            diag1,
+            diag2
+          ]
   where
     list3 :: a -> a -> a -> [a]
     list3 x y z = [x, y, z]
