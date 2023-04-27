@@ -2,6 +2,7 @@ import Control.Applicative (liftA2, (<|>))
 import Control.Monad (join)
 import Data.Function (on)
 import Data.List (intercalate, transpose)
+import Data.Maybe (isJust)
 import System.Console.ANSI (Color (..), ColorIntensity (..), ConsoleLayer (..), SGR (..), clearScreen, setCursorPosition, setSGR)
 import Text.Read (readMaybe)
 
@@ -33,14 +34,14 @@ showRow index xs = show index ++ " " ++ intercalate " | " (map spotText xs) ++ "
 initialBoard :: Board
 initialBoard = [[Nothing | _ <- [1 .. 3]] | _ <- [1 .. 3]]
 
-replaceIndexWith :: Int -> (a -> a) -> [a] -> [a]
-replaceIndexWith 0 f (x : xs) = f x : xs
-replaceIndexWith index f (x : xs) = x : replaceIndexWith (index - 1) f xs
-replaceIndexWith _ _ [] = error "Out of bounds"
+modifyIndex :: Int -> (a -> a) -> [a] -> [a]
+modifyIndex 0 f (x : xs) = f x : xs
+modifyIndex index f (x : xs) = x : modifyIndex (index - 1) f xs
+modifyIndex _ _ [] = error "Out of bounds"
 
 playAtSpot :: (Int, Int) -> BoardSpot -> Board -> Maybe Board
 playAtSpot (x, y) spot board = case getAtSpot (x, y) board of
-  Nothing -> Just $ replaceIndexWith y (replaceIndexWith x $ const $ Just spot) board
+  Nothing -> Just $ modifyIndex y (modifyIndex x $ const $ Just spot) board
   Just _ -> Nothing
 
 getAtSpot :: (Int, Int) -> Board -> Maybe BoardSpot
@@ -70,6 +71,9 @@ winner rows@[row1, row2, row3] =
     diag1 = (\(i, v) -> v !! i) <$> zip [0 ..] rows
     diag2 = (\(i, v) -> v !! (2 - i)) <$> zip [0 ..] rows
 winner _ = error "Board has more than 3 columns"
+
+isTie :: Board -> Bool
+isTie = all (all isJust)
 
 getChordsAndPlayTurn :: Board -> BoardSpot -> IO Board
 getChordsAndPlayTurn board turn = do
@@ -117,13 +121,17 @@ printBoard board = do
 
 game :: Board -> BoardSpot -> IO ()
 game board turn = do
-  printBoard board
   newBoard <- getChordsAndPlayTurn board turn
+  printBoard newBoard
   case winner newBoard of
     Just win -> do
-      printBoard newBoard
       putStrLn $ show win ++ " Won!"
-    Nothing -> game newBoard $ nextTurn turn
+    Nothing ->
+      if isTie newBoard
+        then putStrLn "Tie!"
+        else game newBoard $ nextTurn turn
 
 main :: IO ()
-main = game initialBoard Cross
+main = do
+  printBoard initialBoard
+  game initialBoard Cross
