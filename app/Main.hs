@@ -1,3 +1,4 @@
+module Main(main) where
 import Control.Applicative (liftA2, (<|>))
 import Control.Monad (join)
 import Data.Function (on)
