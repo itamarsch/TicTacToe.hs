@@ -5,7 +5,7 @@
 module Main (main) where
 
 import Control.Applicative (liftA2, (<|>))
-import Control.Monad (join, (<=<))
+import Control.Monad (guard, join, (<=<))
 import Data.Either.Extra (maybeToEither)
 import Data.Foldable (foldl')
 import Data.List (foldl1')
@@ -68,10 +68,9 @@ playAtSpot coord spot (Board board) = case board !? coord of
   Nothing -> Just $ Board $ alter (const $ Just spot) coord board
   Just _ -> Nothing
 
-allEqMaybe :: Eq a => [a] -> Maybe a
-allEqMaybe [] = Nothing
-allEqMaybe xs | all (== head xs) xs = Just $ head xs
-allEqMaybe _ = Nothing
+unrepeat :: Eq a => [a] -> Maybe a
+unrepeat (x : xs) = guard (all (== x) xs) >> pure x
+unrepeat _ = Nothing
 
 winner :: Board -> Coordinates -> Maybe Player
 winner (Board board) (x, y) =
@@ -86,7 +85,7 @@ winner (Board board) (x, y) =
       -- True for diag 2
       | otherwise = [row, column, diag2]
 
-    isWin = join . allEqMaybe . ((board !?) <$>)
+    isWin = join . unrepeat . ((board !?) <$>)
 
     diag1 = [(n, n) | n <- [0 .. 2]]
     diag2 = [(2 - n, n) | n <- [0 .. 2]]
