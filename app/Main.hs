@@ -21,12 +21,19 @@ showPlayerT = Text.pack . show
 
 newtype Spot = Spot (Maybe Player)
 
+instance Show Spot where
+  show  = Text.unpack . showSpotT
+
 showSpotT :: Spot -> Text.Text
 showSpotT (Spot (Just Cross)) = "x"
 showSpotT (Spot (Just Circle)) = "0"
 showSpotT (Spot Nothing) = " "
 
+
 newtype Board = Board (Map Coordinates Player)
+
+instance Show Board where
+  show = Text.unpack . showBoard
 
 showBoard :: Board -> Text.Text
 showBoard (Board board) = foldl' replaceExclamation unfilledBoard $ Spot . (board !?) <$> coordinates
