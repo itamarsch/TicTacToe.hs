@@ -1,116 +1,124 @@
-module Main(main) where
+{-# LANGUAGE OverloadedStrings #-}
+
+module Main (main) where
+
 import Control.Applicative (liftA2, (<|>))
 import Control.Monad (join)
-import Data.Function (on)
-import Data.List (intercalate, transpose)
-import Data.Maybe (isJust)
+import Data.Foldable (foldl')
+import Data.List (foldl1')
+import Data.Map (Map, alter, empty, (!?))
+import Data.Text qualified as Text
+import Data.Text.IO qualified as TextIO
 import System.Console.ANSI (Color (..), ColorIntensity (..), ConsoleLayer (..), SGR (..), clearScreen, setCursorPosition, setSGR)
 import Text.Read (readMaybe)
 
-type Board = [BoardRow]
+type Coordinates = (Int, Int)
 
-type BoardRow = [Maybe BoardSpot]
+data Player = Cross | Circle deriving (Eq, Show)
 
-data BoardSpot = Cross | Circle deriving (Eq, Show)
+showPlayerT :: Player -> Text.Text
+showPlayerT = Text.pack . show
 
-nextTurn :: BoardSpot -> BoardSpot
+newtype Spot = Spot (Maybe Player)
+
+showSpotT :: Spot -> Text.Text
+showSpotT (Spot (Just Cross)) = "x"
+showSpotT (Spot (Just Circle)) = "0"
+showSpotT (Spot Nothing) = " "
+
+newtype Board = Board (Map Coordinates Player)
+
+showBoard :: Board -> Text.Text
+showBoard (Board board) = foldl' replaceExclamation unfilledBoard $ Spot . (board !?) <$> coordinates
+  where
+    -- Not Sure what I think about this implementations but it works and is pretty clean
+    coordinates :: [Coordinates]
+    coordinates = [(x, y) | y <- [0 .. 2], x <- [0 .. 2]]
+    replaceExclamation :: Text.Text -> Spot -> Text.Text
+    replaceExclamation boardText spot = replaceOne "!" (showSpotT spot) boardText
+
+    unfilledBoard =
+      "  0   1   2 \n\
+      \0 ! | ! | ! \n\
+      \ ---+---+---\n\
+      \1 ! | ! | ! \n\
+      \ ---+---+---\n\
+      \2 ! | ! | ! "
+
+nextTurn :: Player -> Player
 nextTurn Cross = Circle
 nextTurn Circle = Cross
 
-showBoard :: Board -> String
-showBoard board =
-  "  0   1   2 \n"
-    ++ intercalate divider (zipWith showRow [0 ..] board)
+replaceOne :: Text.Text -> Text.Text -> Text.Text -> Text.Text
+replaceOne pattern substitution text = Text.concat [front, substitution, Text.drop (Text.length pattern) back]
   where
-    divider = " ---+---+---\n"
+    (front, back) = Text.breakOn pattern text
 
-spotText :: Maybe BoardSpot -> String
-spotText (Just Cross) = "x"
-spotText (Just Circle) = "0"
-spotText Nothing = " "
-
-showRow :: Int -> BoardRow -> String
-showRow index xs = show index ++ " " ++ intercalate " | " (map spotText xs) ++ " \n"
-
-initialBoard :: Board
-initialBoard = [[Nothing | _ <- [1 .. 3]] | _ <- [1 .. 3]]
-
-modifyIndex :: Int -> (a -> a) -> [a] -> [a]
-modifyIndex 0 f (x : xs) = f x : xs
-modifyIndex index f (x : xs) = x : modifyIndex (index - 1) f xs
-modifyIndex _ _ [] = error "Out of bounds"
-
-playAtSpot :: (Int, Int) -> BoardSpot -> Board -> Maybe Board
-playAtSpot (x, y) spot board = case getAtSpot (x, y) board of
-  Nothing -> Just $ modifyIndex y (modifyIndex x $ const $ Just spot) board
+playAtSpot :: Coordinates -> Player -> Board -> Maybe Board
+playAtSpot coord spot (Board board) = case board !? coord of
+  Nothing -> Just $ Board $ alter (const $ Just spot) coord board
   Just _ -> Nothing
-
-getAtSpot :: (Int, Int) -> Board -> Maybe BoardSpot
-getAtSpot (x, y) board = board !! y !! x
 
 allEqMaybe :: Eq a => [a] -> Maybe a
 allEqMaybe [] = Nothing
 allEqMaybe xs | all (== head xs) xs = Just $ head xs
 allEqMaybe _ = Nothing
 
-winner :: Board -> Maybe BoardSpot
-winner rows@[row1, row2, row3] =
-  foldl1 (<|>) $
-    isWin
-      <$> [ row1,
-            row2,
-            row3,
-            head columns,
-            columns !! 1,
-            columns !! 2,
-            diag1,
-            diag2
-          ]
+winner :: Board -> Coordinates -> Maybe Player
+winner (Board board) (x, y) =
+  foldl1' (<|>) $ isWin <$> winningChecks
   where
-    isWin = join . allEqMaybe
-    columns = transpose rows
-    diag1 = (\(i, v) -> v !! i) <$> zip [0 ..] rows
-    diag2 = (\(i, v) -> v !! (2 - i)) <$> zip [0 ..] rows
-winner _ = error "Board has more than 3 columns"
+    winningChecks
+      -- True if coordinates aren't part of diagonal
+      | (x == 1 || y == 1) && (x /= y) = [row, column]
+      | x == 1 && y == 1 = [row, column, diag2, diag1]
+      -- True for diag 1
+      | x == y = [row, column, diag1]
+      -- True for diag 2
+      | otherwise = [row, column, diag2]
 
-isTie :: Board -> Bool
-isTie = all (all isJust)
+    isWin = join . allEqMaybe . ((board !?) <$>)
 
-getChordsAndPlayTurn :: Board -> BoardSpot -> IO Board
+    diag1 = [(n, n) | n <- [0 .. 2]]
+    diag2 = [(2 - n, n) | n <- [0 .. 2]]
+    row = [(x', y) | x' <- [0 .. 2]]
+    column = [(x, y') | y' <- [0 .. 2]]
+
+getChordsAndPlayTurn :: Board -> Player -> IO (Board, Coordinates)
 getChordsAndPlayTurn board turn = do
-  putStrLn $ show turn ++ " turn"
-  (x, y) <- getInputAndValidate parseIntTuple "Please Enter space seperated coordinates: x y"
-  case playAtSpot (x, y) turn board of
+  TextIO.putStrLn $ showPlayerT turn <> " turn"
+  coord <- getInputAndValidate parseIntTuple "Please Enter space seperated coordinates: x y"
+  case playAtSpot coord turn board of
     Nothing -> do
       setSGR [SetColor Foreground Dull Red]
-      putStrLn "Invalid placement"
+      TextIO.putStrLn "Invalid placement"
       setSGR [Reset]
       getChordsAndPlayTurn board turn
-    Just newBoard -> return newBoard
+    Just newBoard -> pure (newBoard, coord)
 
-type Validator a = (String -> Either String a)
+type Parser a = (Text.Text -> Either Text.Text a)
 
-getInputAndValidate :: Validator a -> String -> IO a
+getInputAndValidate :: Parser a -> Text.Text -> IO a
 getInputAndValidate validator message = do
-  putStrLn message
-  input <- getLine
+  TextIO.putStrLn message
+  input <- TextIO.getLine
   case validator input of
-    Right value -> return value
+    Right value -> pure value
     Left errorMessage -> do
       setSGR [SetColor Foreground Dull Red]
-      putStrLn errorMessage
+      TextIO.putStrLn errorMessage
       setSGR [Reset]
       getInputAndValidate validator message
 
-parseNumber :: Validator Int
-parseNumber s = case readMaybe s of
+parseNumber :: Parser Int
+parseNumber s = case readMaybe $ Text.unpack s of
   Nothing -> Left "Input has to be number"
   Just a | a > 2 || a < 0 -> Left "Input has to be between 0-2"
   Just a -> Right a
 
-parseIntTuple :: Validator (Int, Int)
+parseIntTuple :: Parser Coordinates
 parseIntTuple s =
-  case words s of
+  case Text.words s of
     [x, y] -> liftA2 (,) (parseNumber x) (parseNumber y)
     _ -> Left "Input has to be two numbers"
 
@@ -118,21 +126,22 @@ printBoard :: Board -> IO ()
 printBoard board = do
   setCursorPosition 0 0
   clearScreen
-  putStrLn $ showBoard board
+  TextIO.putStrLn $ showBoard board
 
-game :: Board -> BoardSpot -> IO ()
-game board turn = do
-  newBoard <- getChordsAndPlayTurn board turn
+game :: Board -> Player -> Int -> IO ()
+game board turn turnCounter = do
+  (newBoard, coords) <- getChordsAndPlayTurn board turn
   printBoard newBoard
-  case winner newBoard of
-    Just win -> do
-      putStrLn $ show win ++ " Won!"
+  case winner newBoard coords of
+    Just win ->
+      TextIO.putStrLn $ showPlayerT win <> " Won!"
     Nothing ->
-      if isTie newBoard
-        then putStrLn "Tie!"
-        else game newBoard $ nextTurn turn
+      if turnCounter == 9
+        then TextIO.putStrLn "Tie!"
+        else game newBoard (nextTurn turn) (turnCounter + 1)
 
 main :: IO ()
 main = do
+  let initialBoard = Board empty
   printBoard initialBoard
-  game initialBoard Cross
+  game initialBoard Cross 1
