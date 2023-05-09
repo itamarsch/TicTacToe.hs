@@ -84,8 +84,8 @@ winner (Board board) (x, y) =
     row = [(x', y) | x' <- [0 .. 2]]
     column = [(x, y') | y' <- [0 .. 2]]
 
-getChordsAndPlayTurn :: Board -> Player -> IO (Board, Coordinates)
-getChordsAndPlayTurn board turn = do
+getCoordsAndPlayTurn :: Board -> Player -> IO (Board, Coordinates)
+getCoordsAndPlayTurn board turn = do
   TextIO.putStrLn $ showPlayerT turn <> " turn"
   coord <- getInputAndValidate parseIntTuple "Please Enter space seperated coordinates: x y"
   case playAtSpot coord turn board of
@@ -93,7 +93,7 @@ getChordsAndPlayTurn board turn = do
       setSGR [SetColor Foreground Dull Red]
       TextIO.putStrLn "Invalid placement"
       setSGR [Reset]
-      getChordsAndPlayTurn board turn
+      getCoordsAndPlayTurn board turn
     Just newBoard -> pure (newBoard, coord)
 
 type Parser a = (Text.Text -> Either Text.Text a)
@@ -130,7 +130,7 @@ printBoard board = do
 
 game :: Board -> Player -> Int -> IO ()
 game board turn turnCounter = do
-  (newBoard, coords) <- getChordsAndPlayTurn board turn
+  (newBoard, coords) <- getCoordsAndPlayTurn board turn
   printBoard newBoard
   case winner newBoard coords of
     Just win ->
