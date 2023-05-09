@@ -1,14 +1,17 @@
+-- My lsp for some reason prefers this when formatting
+{-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main (main) where
 
 import Control.Applicative (liftA2, (<|>))
-import Control.Monad (join)
+import Control.Monad (join, (<=<))
+import Data.Either.Extra (maybeToEither)
 import Data.Foldable (foldl')
 import Data.List (foldl1')
 import Data.Map (Map, alter, empty, (!?))
-import qualified Data.Text as Text
-import qualified Data.Text.IO as TextIO
+import Data.Text qualified as Text
+import Data.Text.IO qualified as TextIO
 import System.Console.ANSI (Color (..), ColorIntensity (..), ConsoleLayer (..), SGR (..), clearScreen, setCursorPosition, setSGR)
 import Text.Read (readMaybe)
 
@@ -22,13 +25,12 @@ showPlayerT = Text.pack . show
 newtype Spot = Spot (Maybe Player)
 
 instance Show Spot where
-  show  = Text.unpack . showSpotT
+  show = Text.unpack . showSpotT
 
 showSpotT :: Spot -> Text.Text
 showSpotT (Spot (Just Cross)) = "x"
 showSpotT (Spot (Just Circle)) = "0"
 showSpotT (Spot Nothing) = " "
-
 
 newtype Board = Board (Map Coordinates Player)
 
@@ -118,10 +120,12 @@ getInputAndValidate validator message = do
       getInputAndValidate validator message
 
 parseNumber :: Parser Int
-parseNumber s = case readMaybe $ Text.unpack s of
-  Nothing -> Left "Input has to be number"
-  Just a | a > 2 || a < 0 -> Left "Input has to be between 0-2"
-  Just a -> Right a
+parseNumber = inBounds <=< maybeToEither "Input has to be a number" . readMaybe . Text.unpack
+  where
+    inBounds :: Int -> Either Text.Text Int
+    inBounds x
+      | x < 3 && x >= 0 = Right x
+      | otherwise = Left "Coordinate out of bounds"
 
 parseIntTuple :: Parser Coordinates
 parseIntTuple s =
