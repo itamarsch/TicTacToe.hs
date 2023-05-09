@@ -7,8 +7,8 @@ import Control.Monad (join)
 import Data.Foldable (foldl')
 import Data.List (foldl1')
 import Data.Map (Map, alter, empty, (!?))
-import Data.Text qualified as Text
-import Data.Text.IO qualified as TextIO
+import qualified Data.Text as Text
+import qualified Data.Text.IO as TextIO
 import System.Console.ANSI (Color (..), ColorIntensity (..), ConsoleLayer (..), SGR (..), clearScreen, setCursorPosition, setSGR)
 import Text.Read (readMaybe)
 
