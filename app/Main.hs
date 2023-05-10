@@ -5,11 +5,11 @@
 module Main (main) where
 
 import Control.Applicative (liftA2, (<|>))
-import Control.Monad (guard, join, (<=<))
+import Control.Monad (guard, (<=<))
 import Data.Either.Extra (maybeToEither)
 import Data.Foldable (foldl')
 import Data.List (foldl1')
-import Data.Map.Strict (Map, alter, empty, findWithDefault, (!?))
+import Data.Map.Strict (Map, empty, findWithDefault, insert, (!?))
 import Data.Text qualified as Text
 import Data.Text.IO qualified as TextIO
 import System.Console.ANSI (Color (..), ColorIntensity (..), ConsoleLayer (..), SGR (..), clearScreen, setCursorPosition, setSGR)
@@ -58,7 +58,7 @@ replaceOne pattern substitution text = Text.concat [front, substitution, Text.dr
 
 playAtSpot :: Coordinates -> Player -> Board -> Maybe Board
 playAtSpot coord spot (Board board) = case board !? coord of
-  Nothing -> Just $ Board $ alter (const $ Just spot) coord board
+  Nothing -> Just $ Board $ insert coord spot board
   Just _ -> Nothing
 
 unrepeat :: Eq a => [a] -> Maybe a
