@@ -9,7 +9,7 @@ import Control.Monad (guard, join, (<=<))
 import Data.Either.Extra (maybeToEither)
 import Data.Foldable (foldl')
 import Data.List (foldl1')
-import Data.Map (Map, alter, empty, (!?))
+import Data.Map.Strict (Map, alter, empty, findWithDefault, (!?))
 import Data.Text qualified as Text
 import Data.Text.IO qualified as TextIO
 import System.Console.ANSI (Color (..), ColorIntensity (..), ConsoleLayer (..), SGR (..), clearScreen, setCursorPosition, setSGR)
@@ -22,29 +22,22 @@ data Player = Cross | Circle deriving (Eq, Show)
 showPlayerT :: Player -> Text.Text
 showPlayerT = Text.pack . show
 
-newtype Spot = Spot (Maybe Player)
-
-instance Show Spot where
-  show = Text.unpack . showSpotT
-
-showSpotT :: Spot -> Text.Text
-showSpotT (Spot (Just Cross)) = "x"
-showSpotT (Spot (Just Circle)) = "0"
-showSpotT (Spot Nothing) = " "
-
 newtype Board = Board (Map Coordinates Player)
 
-instance Show Board where
-  show = Text.unpack . showBoard
-
 showBoard :: Board -> Text.Text
-showBoard (Board board) = foldl' replaceExclamation unfilledBoard $ Spot . (board !?) <$> coordinates
+showBoard (Board board) = foldl' replaceExclamation unfilledBoard $ flip (findWithDefault " ") textBoard <$> coordinates
   where
+    playerToSpotText :: Player -> Text.Text
+    playerToSpotText Circle = "0"
+    playerToSpotText Cross = "x"
+
+    textBoard = playerToSpotText <$> board
     -- Not Sure what I think about this implementations but it works and is pretty clean
     coordinates :: [Coordinates]
     coordinates = [(x, y) | y <- [0 .. 2], x <- [0 .. 2]]
-    replaceExclamation :: Text.Text -> Spot -> Text.Text
-    replaceExclamation boardText spot = replaceOne "!" (showSpotT spot) boardText
+
+    replaceExclamation :: Text.Text -> Text.Text -> Text.Text
+    replaceExclamation boardText spotText = replaceOne "!" spotText boardText
 
     unfilledBoard =
       "  0   1   2 \n\
