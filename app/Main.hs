@@ -77,15 +77,16 @@ winner (Board board) (x, y) =
   foldl1' (<|>) $ isWin <$> winningChecks
   where
     winningChecks
+      -- Center
+      | x == 1 && y == 1 = [row, column, diag2, diag1]
       -- True if coordinates aren't part of diagonal
       | (x == 1 || y == 1) && (x /= y) = [row, column]
-      | x == 1 && y == 1 = [row, column, diag2, diag1]
       -- True for diag 1
       | x == y = [row, column, diag1]
       -- True for diag 2
       | otherwise = [row, column, diag2]
 
-    isWin = join . unrepeat . ((board !?) <$>)
+    isWin = unrepeat <=< traverse (board !?)
 
     diag1 = [(n, n) | n <- [0 .. 2]]
     diag2 = [(2 - n, n) | n <- [0 .. 2]]
