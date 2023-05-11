@@ -6,7 +6,6 @@ module Terminal (terminalGame) where
 import Control.Applicative (liftA2)
 import Control.Monad ((<=<))
 import Data.Either.Extra (maybeToEither)
-import Data.Foldable (Foldable (foldl'))
 import Data.Function (on)
 import Data.Map.Strict (empty, findWithDefault)
 import Data.Text qualified as Text
@@ -19,32 +18,22 @@ showPlayerT :: Player -> Text.Text
 showPlayerT = Text.pack . show
 
 showBoard :: Board -> Text.Text
-showBoard (Board board) = foldl' replaceExclamation unfilledBoard $ flip (findWithDefault " ") textBoard <$> coordinates
+showBoard (Board board) =
+  "  0   1   2 \n"
+    <> Text.intercalate "\n ---+---+---\n" rows
   where
+    rows = rowString <$> (zip [0 ..] $ replicate 3 [0 .. 2])
+    rowString :: (Int, [Int]) -> Text.Text
+    rowString (colIndex, row) =
+      (Text.pack . show) colIndex
+        <> " "
+        <> Text.intercalate " | " ((\t -> findWithDefault " " (t, colIndex) textBoard) <$> row)
+
+    textBoard = playerToSpotText <$> board
+
     playerToSpotText :: Player -> Text.Text
     playerToSpotText Circle = "0"
     playerToSpotText Cross = "x"
-
-    textBoard = playerToSpotText <$> board
-    -- Not Sure what I think about this implementations but it works and is pretty clean
-    coordinates :: [Coordinates]
-    coordinates = [(x, y) | y <- [0 .. 2], x <- [0 .. 2]]
-
-    replaceExclamation :: Text.Text -> Text.Text -> Text.Text
-    replaceExclamation boardText spotText = replaceOne "!" spotText boardText
-
-    unfilledBoard =
-      "  0   1   2 \n\
-      \0 ! | ! | ! \n\
-      \ ---+---+---\n\
-      \1 ! | ! | ! \n\
-      \ ---+---+---\n\
-      \2 ! | ! | ! "
-
-replaceOne :: Text.Text -> Text.Text -> Text.Text -> Text.Text
-replaceOne pattern substitution text = Text.concat [front, substitution, Text.drop (Text.length pattern) back]
-  where
-    (front, back) = Text.breakOn pattern text
 
 getCoordsAndPlayTurn :: Board -> Player -> IO (Board, Coordinates)
 getCoordsAndPlayTurn board turn = do
