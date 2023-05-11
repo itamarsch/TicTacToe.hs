@@ -1,6 +1,5 @@
-module Lib
-    ( someFunc
-    ) where
+-- My lsp for some reason prefers this when formatting
 
-someFunc :: IO ()
-someFunc = putStrLn "someFunc"
+module Lib (terminalGame) where
+
+import Terminal (terminalGame)

@@ -25,7 +25,9 @@ source-repository head
 
 library
   exposed-modules:
+      GameLogic
       Lib
+      Terminal
   other-modules:
       Paths_TicTacToe
   hs-source-dirs:
