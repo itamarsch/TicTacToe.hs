@@ -7,6 +7,7 @@ import Control.Applicative (liftA2)
 import Control.Monad ((<=<))
 import Data.Either.Extra (maybeToEither)
 import Data.Foldable (Foldable (foldl'))
+import Data.Function (on)
 import Data.Map.Strict (empty, findWithDefault)
 import Data.Text qualified as Text
 import Data.Text.IO qualified as TextIO
@@ -82,7 +83,7 @@ parseNumber = inBounds <=< maybeToEither "Input has to be a number" . readMaybe 
 parseIntTuple :: Parser Coordinates
 parseIntTuple s =
   case Text.words s of
-    [x, y] -> liftA2 (,) (parseNumber x) (parseNumber y)
+    [x, y] -> (liftA2 (,) `on` parseNumber) x y
     _ -> Left "Input has to be two numbers"
 
 printBoard :: Board -> IO ()
