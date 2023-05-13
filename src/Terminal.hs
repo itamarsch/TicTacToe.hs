@@ -19,10 +19,10 @@ showPlayerT = Text.pack . show
 
 showBoard :: Board -> Text.Text
 showBoard (Board board) =
-  let rows = rowString <$> zip [0 ..] (replicate squareSize [0 .. (squareSize - 1)])
+  let rows = zipWith rowString [0 ..] (replicate squareSize [0 .. (squareSize - 1)])
 
-      rowString :: (Int, [Int]) -> Text.Text
-      rowString (colIndex, row) =
+      rowString :: Int -> [Int] -> Text.Text
+      rowString colIndex row =
         (Text.pack . show) colIndex
           <> " "
           <> Text.intercalate " | " ((\t -> findWithDefault " " (t, colIndex) textBoard) <$> row)
