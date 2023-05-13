@@ -10,7 +10,7 @@ import Data.Function (on)
 import Data.Map.Strict (empty, findWithDefault)
 import Data.Text qualified as Text
 import Data.Text.IO qualified as TextIO
-import GameLogic (Board (..), Coordinates, Player (..), nextTurn, playAtSpot, winner)
+import GameLogic (Board (..), Coordinates, Player (..), nextTurn, playAtSpot, squareSize, winner)
 import System.Console.ANSI (Color (..), ColorIntensity (..), ConsoleLayer (..), SGR (..), clearScreen, setCursorPosition, setSGR)
 import Text.Read (readMaybe)
 
@@ -19,7 +19,7 @@ showPlayerT = Text.pack . show
 
 showBoard :: Board -> Text.Text
 showBoard (Board board) =
-  let rows = rowString <$> zip [0 ..] (replicate 3 [0 .. 2])
+  let rows = rowString <$> zip [0 ..] (replicate squareSize [0 .. (squareSize - 1)])
 
       rowString :: (Int, [Int]) -> Text.Text
       rowString (colIndex, row) =
@@ -33,8 +33,9 @@ showBoard (Board board) =
       playerToSpotText Circle = "0"
       playerToSpotText Cross = "x"
 
-      prefix = "  0   1   2 \n"
-   in prefix <> Text.intercalate "\n ---+---+---\n" rows
+      prefix = "  " <> Text.intercalate "   " (Text.pack . show <$> [0 .. (squareSize - 1)]) <> "\n"
+      rowDivider = "\n " <> Text.intercalate "+" (replicate squareSize "---") <> "\n"
+   in prefix <> Text.intercalate rowDivider rows
 
 getCoordsAndPlayTurn :: Board -> Player -> IO (Board, Coordinates)
 getCoordsAndPlayTurn board turn = do
@@ -66,7 +67,7 @@ parseNumber :: Parser Int
 parseNumber =
   let inBounds :: Int -> Either Text.Text Int
       inBounds x
-        | x < 3 && x >= 0 = Right x
+        | x < squareSize && x >= 0 = Right x
         | otherwise = Left "Coordinate out of bounds"
    in inBounds <=< maybeToEither "Input has to be a number" . readMaybe . Text.unpack
 
@@ -90,7 +91,7 @@ game board turn turnCounter = do
     Just win ->
       TextIO.putStrLn $ showPlayerT win <> " Won!"
     Nothing ->
-      if turnCounter == 9
+      if turnCounter == (squareSize * squareSize)
         then TextIO.putStrLn "Tie!"
         else game newBoard (nextTurn turn) (turnCounter + 1)
 

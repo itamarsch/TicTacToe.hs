@@ -1,4 +1,4 @@
-module GameLogic (Board (..), Coordinates, winner, Player (..), nextTurn, playAtSpot) where
+module GameLogic (Board (..), Coordinates, winner, Player (..), nextTurn, playAtSpot, squareSize) where
 
 import Control.Applicative ((<|>))
 import Control.Monad (guard, (<=<))
@@ -10,6 +10,9 @@ type Coordinates = (Int, Int)
 data Player = Cross | Circle deriving (Eq, Show)
 
 newtype Board = Board (Map Coordinates Player)
+
+squareSize :: Int
+squareSize = 3
 
 nextTurn :: Player -> Player
 nextTurn Cross = Circle
