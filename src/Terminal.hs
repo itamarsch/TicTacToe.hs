@@ -39,7 +39,7 @@ showBoard (Board board) =
 getCoordsAndPlayTurn :: Board -> Player -> IO (Board, Coordinates)
 getCoordsAndPlayTurn board turn = do
   TextIO.putStrLn $ showPlayerT turn <> " turn"
-  coord <- getInputAndValidate parseIntTuple "Please Enter space seperated coordinates: x y"
+  coord <- getInputAndValidate parseCoorinate "Please Enter space seperated coordinates: x y"
   case playAtSpot coord turn board of
     Nothing -> do
       setSGR [SetColor Foreground Dull Red]
@@ -70,8 +70,8 @@ parseNumber =
         | otherwise = Left "Coordinate out of bounds"
    in inBounds <=< maybeToEither "Input has to be a number" . readMaybe . Text.unpack
 
-parseIntTuple :: Parser Coordinates
-parseIntTuple s =
+parseCoorinate :: Parser Coordinates
+parseCoorinate s =
   case Text.words s of
     [x, y] -> (liftA2 (,) `on` parseNumber) x y
     _ -> Left "Input has to be two numbers"
