@@ -26,21 +26,20 @@ unrepeat _ = Nothing
 
 winner :: Board -> Coordinates -> Maybe Player
 winner (Board board) (x, y) =
-  foldl1' (<|>) $ isWin <$> winningChecks
-  where
-    winningChecks
-      -- Center
-      | x == 1 && y == 1 = [row, column, diag2, diag1]
-      -- True if coordinates aren't part of diagonal
-      | (x == 1 || y == 1) && (x /= y) = [row, column]
-      -- True for diag 1
-      | x == y = [row, column, diag1]
-      -- True for diag 2
-      | otherwise = [row, column, diag2]
+  let diag1 = [(n, n) | n <- [0 .. 2]]
+      diag2 = [(2 - n, n) | n <- [0 .. 2]]
+      row = [(x', y) | x' <- [0 .. 2]]
+      column = [(x, y') | y' <- [0 .. 2]]
 
-    isWin = unrepeat <=< traverse (board !?)
+      winningChecks
+        -- Center
+        | x == 1 && y == 1 = [row, column, diag2, diag1]
+        -- True if coordinates aren't part of diagonal
+        | (x == 1 || y == 1) && (x /= y) = [row, column]
+        -- True for diag 1
+        | x == y = [row, column, diag1]
+        -- True for diag 2
+        | otherwise = [row, column, diag2]
 
-    diag1 = [(n, n) | n <- [0 .. 2]]
-    diag2 = [(2 - n, n) | n <- [0 .. 2]]
-    row = [(x', y) | x' <- [0 .. 2]]
-    column = [(x, y') | y' <- [0 .. 2]]
+      isWin = unrepeat <=< traverse (board !?)
+   in foldl1' (<|>) $ isWin <$> winningChecks

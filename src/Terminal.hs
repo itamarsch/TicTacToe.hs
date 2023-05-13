@@ -19,21 +19,22 @@ showPlayerT = Text.pack . show
 
 showBoard :: Board -> Text.Text
 showBoard (Board board) =
-  "  0   1   2 \n"
-    <> Text.intercalate "\n ---+---+---\n" rows
-  where
-    rows = rowString <$> (zip [0 ..] $ replicate 3 [0 .. 2])
-    rowString :: (Int, [Int]) -> Text.Text
-    rowString (colIndex, row) =
-      (Text.pack . show) colIndex
-        <> " "
-        <> Text.intercalate " | " ((\t -> findWithDefault " " (t, colIndex) textBoard) <$> row)
+  let rows = rowString <$> zip [0 ..] (replicate 3 [0 .. 2])
 
-    textBoard = playerToSpotText <$> board
+      rowString :: (Int, [Int]) -> Text.Text
+      rowString (colIndex, row) =
+        (Text.pack . show) colIndex
+          <> " "
+          <> Text.intercalate " | " ((\t -> findWithDefault " " (t, colIndex) textBoard) <$> row)
 
-    playerToSpotText :: Player -> Text.Text
-    playerToSpotText Circle = "0"
-    playerToSpotText Cross = "x"
+      textBoard = playerToSpotText <$> board
+
+      playerToSpotText :: Player -> Text.Text
+      playerToSpotText Circle = "0"
+      playerToSpotText Cross = "x"
+
+      prefix = "  0   1   2 \n"
+   in prefix <> Text.intercalate "\n ---+---+---\n" rows
 
 getCoordsAndPlayTurn :: Board -> Player -> IO (Board, Coordinates)
 getCoordsAndPlayTurn board turn = do
@@ -62,12 +63,12 @@ getInputAndValidate validator message = do
       getInputAndValidate validator message
 
 parseNumber :: Parser Int
-parseNumber = inBounds <=< maybeToEither "Input has to be a number" . readMaybe . Text.unpack
-  where
-    inBounds :: Int -> Either Text.Text Int
-    inBounds x
-      | x < 3 && x >= 0 = Right x
-      | otherwise = Left "Coordinate out of bounds"
+parseNumber =
+  let inBounds :: Int -> Either Text.Text Int
+      inBounds x
+        | x < 3 && x >= 0 = Right x
+        | otherwise = Left "Coordinate out of bounds"
+   in inBounds <=< maybeToEither "Input has to be a number" . readMaybe . Text.unpack
 
 parseIntTuple :: Parser Coordinates
 parseIntTuple s =
